@@ -245,11 +245,11 @@ class LinkedInAPI(object):
     def append_initial_arg(self, key, args, prep_url):
         assert '?' not in prep_url, 'Initial argument has already been applied to %s' % prep_url
         if type(args) == type([]):
-            prep_url += '?' + key + '=' + str(args[0])
+            prep_url = prep_url[:-1] + key + '=' + str(args[0])
             if len(args) > 1:
                 prep_url += ''.join(['&' + key + '=' + str(arg) for arg in args[1:]])
         else:
-            prep_url += '?' + key + '=' + str(args)
+            prep_url = prep_url[:-1] + key + '=' + str(args)
         return prep_url
     
     def append_sequential_arg(self, key, args, prep_url):
