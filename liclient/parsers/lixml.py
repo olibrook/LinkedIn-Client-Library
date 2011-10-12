@@ -14,7 +14,7 @@ class LinkedInXMLParser(object):
             'position': self.__parse_position,
             'skill': self.__parse_skills,
             'education': self.__parse_education,
-            'people': self.__parse_people_collection,
+            'people-search': self.__parse_people_collection,
             'twitter-account': self.__parse_twitter_accounts,
             'member-url': self.__parse_member_url_resources
         }
