@@ -16,7 +16,8 @@ class LinkedInXMLParser(object):
             'education': self.__parse_education,
             'people-search': self.__parse_people_collection,
             'twitter-account': self.__parse_twitter_accounts,
-            'member-url': self.__parse_member_url_resources
+            'member-url': self.__parse_member_url_resources,
+            'companies': self.__parse_company_collection,
         }
         self.tree = etree.fromstring(content)
         self.root = self.tree.tag
@@ -71,7 +72,16 @@ class LinkedInXMLParser(object):
         result_count = int(n.text)
         content = []
         for p in ppl:
+            print p.getchildren()
             rslts = LinkedInProfileParser(p).results
+            content.append(rslts)
+        return content
+
+    def __parse_company_collection(self, tree):
+        companies = tree.getchildren()
+        content = []
+        for c in companies:
+            rslts = LinkedInCompanyParser(c).results
             content.append(rslts)
         return content
         
@@ -167,6 +177,49 @@ class LinkedInNetworkUpdateParser(LinkedInXMLParser):
             obj = mappers.NetworkUpdate(data, u)
         return obj
     
+class LinkedInCompanyParser(LinkedInXMLParser):
+    def __init__(self, content):
+        self.tree = content
+        self.results = self.__build_data(self.tree)
+
+    def __build_data(self, tree):
+        results = []
+        for c in tree.xpath('/company'):
+            company = {}
+            for item in c.getchildren():
+                company[re.sub(r'-', '_', item.tag)] = item.text
+            obj = mappers.Company(company, c)
+            results.append(obj)
+
+        # deal with hierarchical results in a somewhat kludgy way
+        def fix(s):
+            return re.sub(r'-', '_', s)
+        def build_name(parent, item):
+            s = ''
+            p = item.getparent()
+            while p != parent:
+                s = fix(p.tag) + '_' + s
+                p = p.getparent()
+            s += fix(item.tag)
+            return s
+        if not results:
+            company = {}
+            for item in tree.iterdescendants():
+                clean = item.text and item.text.strip()
+                if clean:
+                    name = build_name(tree, item)
+                    if name in company:
+                        value = company[name]
+                        if type(value) != list:
+                            company[name] = [value, clean]
+                        else:
+                            company[name].append(clean)
+                    else:
+                        company[name] = clean
+            obj = mappers.Company(company, tree)
+            results.append(obj)
+        return results
+
 class LinkedInProfileParser(LinkedInXMLParser):
     def __init__(self, content):
         self.tree = content

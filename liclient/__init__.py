@@ -13,7 +13,7 @@ class LinkedInAPI(object):
         self.consumer_key = ck
         self.consumer_secret = cs
         
-        self.api_profile_url = 'http://api.linkedin.com/v1/people/~'
+        self.api_profile_url = 'http://api.linkedin.com/v1/people/'
         self.api_profile_connections_url = 'http://api.linkedin.com/v1/people/~/connections'
         self.api_network_update_url = 'http://api.linkedin.com/v1/people/~/network'
         self.api_comment_feed_url = 'http://api.linkedin.com/v1/people/~/network/updates/' + \
@@ -83,7 +83,7 @@ class LinkedInAPI(object):
         
         content = self.clean_dates(content)
         return LinkedInXMLParser(content).results
-    
+
     def get_user_connections(self, access_token, selectors=None, **kwargs):
         """
         Get the connections of the current user.  Valid keyword arguments are
@@ -176,6 +176,20 @@ class LinkedInAPI(object):
         # print content # useful for debugging...
         return LinkedInXMLParser(content).results
     
+    def company_search(self, access_token, data, field_selector_string=None):
+        """
+        Use the LinkedIn Search API to find users.  The criteria for your search
+        should be passed as the 2nd positional argument as a dictionary of key-
+        value pairs corresponding to the paramters allowed by the API.  Formatting
+        of arguments will be done for you (i.e. lists of keywords will be joined
+        with "+")
+        """
+        srch = LinkedInCompanySearchAPI(data, access_token, field_selector_string)
+        client = oauth.Client(self.consumer, srch.user_token)
+        rest, content = client.request(srch.generated_url, method='GET')
+        # print content # useful for debugging...
+        return LinkedInXMLParser(content).results
+
     def send_message(self, access_token, recipients, subject, body):
         """
         Send a message to a connection.  "Recipients" is a list of ID numbers,
@@ -243,13 +257,12 @@ class LinkedInAPI(object):
         return prep_url
     
     def append_initial_arg(self, key, args, prep_url):
-        assert '?' not in prep_url, 'Initial argument has already been applied to %s' % prep_url
         if type(args) == type([]):
-            prep_url = prep_url[:-1] + key + '=' + str(args[0])
+            prep_url += key + '=' + str(args[0])
             if len(args) > 1:
                 prep_url += ''.join(['&' + key + '=' + str(arg) for arg in args[1:]])
         else:
-            prep_url = prep_url[:-1] + key + '=' + str(args)
+            prep_url += key + '=' + str(args)
         return prep_url
     
     def append_sequential_arg(self, key, args, prep_url):
@@ -358,12 +371,53 @@ class LinkedInAPI(object):
             auth
         )
         return re.sub('_', '-', etree.tostring(mxml))
-            
+
+class LinkedInCompanySearchAPI(LinkedInAPI):
+    def __init__(self, params, access_token, field_selector_string=None):
+        self.api_search_url = 'http://api.linkedin.com/v1/companies'
+        if field_selector_string:
+            self.api_search_url += ':' + field_selector_string
+        self.api_search_url += '?'
+        self.routing = {
+            'email-domain': self.email_domain,
+        }
+        self.user_token, self.generated_url = self.do_process(access_token, params)
+        print "url:", self.generated_url
+
+    def do_process(self, access_token, params):
+        assert type(params) == type(dict()), 'The passed parameters to the Search API must be a dictionary.'
+        user_token = oauth.Token(access_token['oauth_token'], access_token['oauth_token_secret'])
+        url = self.api_search_url
+        for p in params:
+            try:
+                url = self.routing[p](url, params[p])
+                params[p] = None
+            except KeyError:
+                continue
+        remaining_params = {}
+        for p in params:
+            if params[p]:
+                remaining_params[p] = params[p]
+        url = self.process_remaining_params(url, remaining_params)
+        return user_token, url
+
+    def process_remaining_params(self, url, remaining_params):
+        return url
+
+    def email_domain(self, url, val):
+        prep_url = url
+        try:
+            prep_url = self.append_initial_arg('email-domain', val, prep_url)
+        except AssertionError:
+            prep_url = self.append_sequential_arg('email-domain', val, prep_url)
+        return prep_url
+
 class LinkedInSearchAPI(LinkedInAPI):
     def __init__(self, params, access_token, field_selector_string=None):
         self.api_search_url = 'http://api.linkedin.com/v1/people-search'
         if field_selector_string:
             self.api_search_url += ':' + field_selector_string
+        self.api_search_url += '?'
         self.routing = {
             'keywords': self.keywords,
             'name': self.name,

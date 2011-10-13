@@ -213,6 +213,11 @@ class NetworkUpdateComment(LinkedInData):
                     'profile_url': self.profile_url}
         return jsondict
 
+class Company(LinkedInData):
+    def __init__(self, data, xml):
+        self.xml = xml
+        self.parse_data(data)
+
 class Profile(LinkedInData):
     def __init__(self, data, xml):
         self.profile_url = ''
