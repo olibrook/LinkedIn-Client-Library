@@ -375,11 +375,10 @@ class LinkedInAPI(object):
 class LinkedInCompanySearchAPI(LinkedInAPI):
     def __init__(self, params, access_token, field_selector_string=None):
         self.api_search_url = 'http://api.linkedin.com/v1/companies'
-        if field_selector_string:
-            self.api_search_url += ':' + field_selector_string
-        self.api_search_url += '?'
+        self.field_selector_string = field_selector_string
         self.routing = {
             'email-domain': self.email_domain,
+            'universal-name': self.universal_domain,
         }
         self.user_token, self.generated_url = self.do_process(access_token, params)
         print "url:", self.generated_url
@@ -406,10 +405,23 @@ class LinkedInCompanySearchAPI(LinkedInAPI):
 
     def email_domain(self, url, val):
         prep_url = url
+        if self.field_selector_string:
+            prep_url += ':' + self.field_selector_string
+        prep_url += '?'
         try:
             prep_url = self.append_initial_arg('email-domain', val, prep_url)
         except AssertionError:
             prep_url = self.append_sequential_arg('email-domain', val, prep_url)
+        return prep_url
+
+    def universal_domain(self, url, val):
+        prep_url = url + '/'
+        try:
+            prep_url = self.append_initial_arg('universal-name', val, prep_url)
+        except AssertionError:
+            prep_url = self.append_sequential_arg('universal-name', val, prep_url)
+        if self.field_selector_string:
+            prep_url += ':' + self.field_selector_string
         return prep_url
 
 class LinkedInSearchAPI(LinkedInAPI):

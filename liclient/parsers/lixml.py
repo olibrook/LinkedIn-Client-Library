@@ -18,6 +18,7 @@ class LinkedInXMLParser(object):
             'twitter-account': self.__parse_twitter_accounts,
             'member-url': self.__parse_member_url_resources,
             'companies': self.__parse_company_collection,
+            'company': self.__parse_single_company,
         }
         self.tree = etree.fromstring(content)
         self.root = self.tree.tag
@@ -84,7 +85,12 @@ class LinkedInXMLParser(object):
             rslts = LinkedInCompanyParser(c).results
             content.append(rslts)
         return content
-        
+
+    def __parse_single_company(self, tree):
+        company = tree
+        rslts = LinkedInCompanyParser(company).results
+        return [rslts]
+
 class LinkedInNetworkUpdateParser(LinkedInXMLParser):
     def __init__(self, content):
         self.xpath_collection = {
