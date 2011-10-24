@@ -19,6 +19,8 @@ class LinkedInXMLParser(object):
             'member-url': self.__parse_member_url_resources,
             'companies': self.__parse_company_collection,
             'company': self.__parse_single_company,
+            'location': self.__parse_company_location,
+            'specialty': self.__parse_company_specialty,
         }
         self.tree = etree.fromstring(content)
         self.root = self.tree.tag
@@ -90,6 +92,12 @@ class LinkedInXMLParser(object):
         company = tree
         rslts = LinkedInCompanyParser(company).results
         return [rslts]
+
+    def __parse_company_location(self, tree):
+        return LinkedInLocationParser(tree).results
+
+    def __parse_company_specialty(self, tree):
+        return tree.text
 
 class LinkedInNetworkUpdateParser(LinkedInXMLParser):
     def __init__(self, content):
@@ -225,6 +233,38 @@ class LinkedInCompanyParser(LinkedInXMLParser):
             obj = mappers.Company(company, tree)
             results.append(obj)
         return results
+
+class LinkedInLocationParser(LinkedInXMLParser):
+    def __init__(self, content):
+        self.tree = content
+        self.results = self.__build_data(self.tree)
+
+    def __build_data(self, tree):
+        def fix(s):
+            return re.sub(r'-', '_', s)
+        def build_name(parent, item):
+            s = ''
+            p = item.getparent()
+            while p != parent:
+                s = fix(p.tag) + '_' + s
+                p = p.getparent()
+            s += fix(item.tag)
+            return s
+        location = {}
+        for item in tree.iterdescendants():
+            clean = item.text and item.text.strip()
+            if clean:
+                name = build_name(tree, item)
+                if name in location:
+                    value = location[name]
+                    if type(value) != list:
+                        location[name] = [value, clean]
+                    else:
+                        location[name].append(clean)
+                else:
+                    location[name] = clean
+        obj = mappers.Location(location, tree)
+        return obj
 
 class LinkedInProfileParser(LinkedInXMLParser):
     def __init__(self, content):
