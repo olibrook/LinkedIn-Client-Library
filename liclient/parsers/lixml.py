@@ -21,6 +21,7 @@ class LinkedInXMLParser(object):
             'company': self.__parse_single_company,
             'location': self.__parse_company_location,
             'specialty': self.__parse_company_specialty,
+            'email-domain': self.__parse_company_email_domain,
         }
         self.tree = etree.fromstring(content)
         self.root = self.tree.tag
@@ -97,6 +98,9 @@ class LinkedInXMLParser(object):
         return LinkedInLocationParser(tree).results
 
     def __parse_company_specialty(self, tree):
+        return tree.text
+
+    def __parse_company_email_domain(self, tree):
         return tree.text
 
 class LinkedInNetworkUpdateParser(LinkedInXMLParser):

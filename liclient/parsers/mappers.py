@@ -219,10 +219,16 @@ class Company(LinkedInData):
         self.parse_data(data)
         self.locations = []
         self.specialties = []
+        self.email_domains = []
         self.employee_count_range = ''
+        self.status = ''
+        self.company_type = ''
         self.get_locations()
         self.get_specialties()
         self.get_employee_count()
+        self.get_domains()
+        self.get_company_status()
+        self.get_company_type()
 
     def get_locations(self):
         location_xpath = etree.XPath('locations/location')
@@ -238,10 +244,29 @@ class Company(LinkedInData):
             obj = lixml.LinkedInXMLParser(etree.tostring(s)).results
             self.specialties.append(obj)
 
+    def get_domains(self):
+        domain_xpath = etree.XPath('email-domains/email-domain')
+        domains = domain_xpath(self.xml)
+        for d in domains:
+            obj = lixml.LinkedInXMLParser(etree.tostring(d)).results
+            self.email_domains.append(obj)
+
     def get_employee_count(self):
         emp_count_xpath = etree.XPath('employee-count-range/code')
         emp_count = emp_count_xpath(self.xml)
         try: self.employee_count_range = emp_count[0].text
+        except: pass
+
+    def get_company_type(self):
+        xpath = etree.XPath('company-type/code')
+        company_type = xpath(self.xml)
+        try: self.company_type = company_type[0].text
+        except: pass
+
+    def get_company_status(self):
+        xpath = etree.XPath('status/code')
+        status = xpath(self.xml)
+        try: self.status = status[0].text
         except: pass
 
 class Location(LinkedInData):
