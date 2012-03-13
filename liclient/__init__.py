@@ -241,6 +241,7 @@ class LinkedInAPI(object):
                     prep_url = self.append_initial_arg(k, kws[k], prep_url)
                 else:
                     prep_url = self.append_sequential_arg(k, kws[k], prep_url)
+        if not kws: prep_url += '~'
         prep_url = re.sub('&&', '&', prep_url)
         print prep_url
         return user_token, prep_url
